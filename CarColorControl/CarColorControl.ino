@@ -1,6 +1,5 @@
 #include <IRremote.h>
 #include "IRCode.h"
-
 // Color arrays
 int black[3]  = { 
   0, 0, 0 };
@@ -20,6 +19,7 @@ int dimWhite[3] = {
 int redVal = black[0];
 int grnVal = black[1]; 
 int bluVal = black[2];
+int fullVal = 255;
 
 const int REDPIN = 5;
 const int GREENPIN = 6;
@@ -34,11 +34,13 @@ const int BLUEBTN_PIN = 12;
 
 const int STATUS_PIN = 10;
 
+const int AMBER_MODE = -1;
 const int NORMAL_MODE = 0;
 const int FADE_MODE = 1;
 const int STROBE_MODE = 2;
 const int COP_MODE = 3;
 const int HEART_MODE = 4;
+const int SHOWOFF_MODE = 5;
 
 boolean isAmber = false;
 int currentMode = 0;
@@ -188,7 +190,6 @@ unsigned long getIRCode(int r, int g, int b)
  *
  */
 
-
 int calculateStep(int prevValue, int endValue) {
   int step = endValue - prevValue; // What's the overall gap?
   if (step) {                      // If its non-zero, 
@@ -214,8 +215,8 @@ int calculateVal(int step, int val, int i) {
     } 
   }
   // Defensive driving: make sure val stays in the range 0-255
-  if (val > 255) {
-    val = 255;
+  if (val > fullVal) {
+    val = fullVal;
   } 
   else if (val < 0) {
     val = 0;
@@ -246,6 +247,7 @@ void crossFade(byte color[3]) {
   int stepB = calculateStep(prevB, B);
 
   for (int i = 0; i <= 1020; i+=2) {
+    buttonCheck();
     redVal = calculateVal(stepR, redVal, i);
     grnVal = calculateVal(stepG, grnVal, i);
     bluVal = calculateVal(stepB, bluVal, i);
@@ -281,16 +283,16 @@ void crossFade(byte color[3]) {
 void setStrips(boolean fade, byte r, byte g, byte b)
 {
   byte arr[] = {
-    r, g, b                              };
+    r, g, b                                  };
   if(fade)
   {
     crossFade(arr);
   }
   else
   {
-    analogWrite(REDPIN, map(r, 0, 255, 0, 1023));
-    analogWrite(GREENPIN, map(g, 0, 255, 0, 1023));
-    analogWrite(BLUEPIN, map(b, 0, 255, 0, 1023));
+    analogWrite(REDPIN, map(r, 0, fullVal, 0, 1023));
+    analogWrite(GREENPIN, map(g, 0, fullVal, 0, 1023));
+    analogWrite(BLUEPIN, map(b, 0, fullVal, 0, 1023));
   }
 }
 
@@ -299,7 +301,7 @@ void fadeStrips(int fadespeed)
 {
   int r, g, b;
   // fade from blue to violet
-  for (r = 0; r < 256; r++) { 
+  for (r = 0; r < fullVal+1; r++) { 
     analogWrite(REDPIN, r);
     buttonCheck();
     if(isAmber || currentMode != 1)
@@ -307,7 +309,7 @@ void fadeStrips(int fadespeed)
     delay(fadespeed);
   } 
   // fade from violet to red
-  for (b = 255; b > 0; b--) { 
+  for (b = fullVal; b > 0; b--) { 
     analogWrite(BLUEPIN, b);
     buttonCheck();
     if(isAmber || currentMode != 1)
@@ -315,7 +317,7 @@ void fadeStrips(int fadespeed)
     delay(fadespeed);
   } 
   // fade from red to yellow
-  for (g = 0; g < 256; g++) { 
+  for (g = 0; g < fullVal+1; g++) { 
     analogWrite(GREENPIN, g);
     buttonCheck();
     if(isAmber || currentMode != 1)
@@ -323,7 +325,7 @@ void fadeStrips(int fadespeed)
     delay(fadespeed);
   } 
   // fade from yellow to green
-  for (r = 255; r > 0; r--) { 
+  for (r = fullVal; r > 0; r--) { 
     analogWrite(REDPIN, r);
     buttonCheck();
     if(isAmber || currentMode != 1)
@@ -331,7 +333,7 @@ void fadeStrips(int fadespeed)
     delay(fadespeed);
   } 
   // fade from green to teal
-  for (b = 0; b < 256; b++) { 
+  for (b = 0; b < fullVal+1; b++) { 
     analogWrite(BLUEPIN, b);
     buttonCheck();
     if(isAmber || currentMode != 1)
@@ -339,7 +341,7 @@ void fadeStrips(int fadespeed)
     delay(fadespeed);
   } 
   // fade from teal to blue
-  for (g = 255; g > 0; g--) { 
+  for (g = fullVal; g > 0; g--) { 
     analogWrite(GREENPIN, g);
     buttonCheck();
     if(isAmber || currentMode != 1)
@@ -361,15 +363,15 @@ void interiorOverride(IRCode results)
 {
   if(results.codeValue == redCode)
   {
-    setStrips(true, 255, 0, 0);
+    setStrips(true, fullVal, 0, 0);
   }
   else if(results.codeValue == greenCode)
   {
-    setStrips(true, 0, 255, 0);
+    setStrips(true, 0, fullVal, 0);
   }
   else if(results.codeValue == blueCode)
   {
-    setStrips(true, 0, 0, 255);
+    setStrips(true, 0, 0, fullVal);
   }
   else if(results.codeValue == fadeCode)
   {
@@ -390,9 +392,9 @@ void parseSwitches(boolean checkStates, int r, int g, int b)
     return;
   }
 
-  int redMapped = map(r, 0, 1, 0, 255);
-  int greenMapped = map(g, 0, 1, 0, 255);
-  int blueMapped = map(b, 0, 1, 0, 255);
+  int redMapped = map(r, 0, 1, 0, fullVal);
+  int greenMapped = map(g, 0, 1, 0, fullVal);
+  int blueMapped = map(b, 0, 1, 0, fullVal);
   if(!isAmber)
   {
     ////irsend.sendNEC(onCode, 32);
@@ -403,28 +405,6 @@ void parseSwitches(boolean checkStates, int r, int g, int b)
     lastCode = buttonsCode;
     setStrips(true, redMapped, greenMapped, blueMapped);
   }
-  /*
-  if(r == 1 && g == 0 && b == 0)
-   {
-   sendCode(0, redCode);
-   //setStrips(255, 0, 0);
-   }
-   else if(r == 0 && g == 0 && b == 1)
-   {
-   sendCode(0, blueCode);
-   //setStrips(0, 255, 0);
-   }
-   else if(r == 0 && g == 1 && b == 0)
-   {
-   sendCode(0, greenCode);
-   //setStrips(0, 0, 255);
-   }
-   else if(r == 0 && g == 0 && b == 0)
-   {
-   //sendCode(0, offCode);
-   //setStrips(0, 0, 0);
-   }
-   */
   delay(50);
   irrecv.enableIRIn();
   lastRedState = r;
@@ -437,9 +417,9 @@ void strobeSwitches(int r, int g, int b)
   if(!isAmber)
   {
     Serial.println("Strobing...");
-    int redMapped = map(r, 0, 1, 0, 255);
-    int greenMapped = map(g, 0, 1, 0, 255);
-    int blueMapped = map(b, 0, 1, 0, 255);
+    int redMapped = map(r, 0, 1, 0, fullVal);
+    int greenMapped = map(g, 0, 1, 0, fullVal);
+    int blueMapped = map(b, 0, 1, 0, fullVal);
     setStrips(false, redMapped, greenMapped, blueMapped);
     //irsend.sendNEC(onCode, 32);
     unsigned long buttonsCode = getIRCode(r, g, b);
@@ -453,42 +433,6 @@ void strobeSwitches(int r, int g, int b)
   {
     return;
   }
-
-  /*
-  if(r == 1 && g == 0 && b == 0)
-   {
-   Serial.println("RED PRESSED");
-   sendCode(0, redCode);
-   setStrips(255, 0, 0);
-   delay(25);
-   setStrips(255, 0, 0);
-   delay(25);
-   }
-   else if(r == 0 && g == 0 && b == 1)
-   {
-   Serial.println("BLUE PRESSED");
-   sendCode(0, blueCode);
-   setStrips(0, 255, 0);
-   delay(25);
-   setStrips(0, 255, 0);
-   delay(25);
-   }
-   else if(r == 0 && g == 1 && b == 0)
-   {
-   Serial.println("GREEN PRESSED");
-   sendCode(0, greenCode);
-   setStrips(0, 0, 255);
-   delay(25);
-   setStrips(0, 0, 255);
-   delay(25);
-   }
-   else if(r == 0 && g == 0 && b == 0)
-   {
-   Serial.println("NONE PRESSED");
-   //sendCode(0, offCode);
-   setStrips(0, 0, 0);
-   }
-   */
   lastRedState = r;
   lastGreenState = g;
   lastBlueState = b;
@@ -497,30 +441,51 @@ void strobeSwitches(int r, int g, int b)
   irrecv.enableIRIn();
 }
 
-void blinkLED(int pin, int amount)
+void heartBeat(float tempo)
 {
-  for(int i=0;i<amount;i++)
+  for(int i=0;i<(fullVal/2);i++)
   {
-    digitalWrite(pin, LOW);
-    delay(500);
-    digitalWrite(pin, HIGH);
-    delay(500);
+    setStrips(false, i, 0, 0);
+    delay(1 * tempo);
   }
+  delay(100 * tempo);
+  
+  for(int i=(fullVal/2);i>80;i--)
+  {
+    setStrips(false, i, 0, 0);
+    delay(1 * tempo);
+  }
+  delay(100 * tempo);
+  
+  for(int i=0;i<fullVal;i+=2)
+  {
+    setStrips(false, i, 0, 0);
+    delay(1 * tempo);
+  }
+  delay(100 * tempo);
+  /*
+  for(int i=fullVal;i>0;i--)
+  {
+    setStrips(false, i, 0, 0);
+    delay(2);
+  }
+  */
+  setStrips(true, 0, 0, 0);
 }
 
-void heartBeat()
+void showOff()
 {
-    //in progress
+  setStrips(false, fullVal, 0, 0);
+  delay(100);
+  setStrips(false, 0, fullVal, 0);
+  delay(100);
+  setStrips(false, 0, 0, fullVal);
+  delay(100);
 }
 
 void goAmber()
 {
-  isAmber = true;
-  //irsend.sendNEC(amberCode, 32);
-  //sendCode(0, amberCode);
-  delay(100);
-  irrecv.enableIRIn();
-  setStrips(true, 255, 150, 0);
+  currentMode = AMBER_MODE;
 }
 
 IRCode repeatCode;
@@ -539,32 +504,18 @@ void changeMode()
 {
   Serial.print("Mode changed to ");
   Serial.println(currentMode + 1);
-  if(isAmber)
+  if(currentMode < STROBE_MODE)
   {
-    isAmber = false;
-    currentMode = 0;
-    Serial.println("Broke amber");
+    currentMode++;
+  }
+  else
+  {
     int red = digitalRead(REDBTN_PIN);
     int green = digitalRead(GREENBTN_PIN);
     int blue = digitalRead(BLUEBTN_PIN);
     parseSwitches(false, red, green, blue);
+    currentMode = FADE_MODE;
   }
-  else
-  {
-    if(currentMode < 2)
-    {
-      currentMode++;
-    }
-    else
-    {
-      int red = digitalRead(REDBTN_PIN);
-      int green = digitalRead(GREENBTN_PIN);
-      int blue = digitalRead(BLUEBTN_PIN);
-      parseSwitches(false, red, green, blue);
-      currentMode = 0;
-    }
-  }
-  blinkLED(STATUS_PIN, currentMode + 1);
 }
 
 void buttonCheck()
@@ -601,7 +552,7 @@ void buttonPressed()
   delay(500);
   if(digitalRead(WHITEBTN_PIN) == HIGH)
   {
-    Serial.println("DBL PRS");
+    Serial.println("DOUBLE PRESSED");
     buttonDoublePressed();
   }
   else
@@ -622,7 +573,7 @@ void buttonHeld()
   int blue = digitalRead(BLUEBTN_PIN);
   if(red && green && blue)
   {
-
+    currentMode = SHOWOFF_MODE;
   }
 
   if(red && !green && blue)
@@ -665,60 +616,64 @@ void setup()
 void loop()
 {
   buttonCheck();
-  if(!isAmber)
+  if(currentMode == NORMAL_MODE)
   {
-    if(currentMode == NORMAL_MODE)
-    {
-      int red = digitalRead(REDBTN_PIN);
-      int green = digitalRead(GREENBTN_PIN);
-      int blue = digitalRead(BLUEBTN_PIN);
-      parseSwitches(true, red, green, blue);
-      /*
+    int red = digitalRead(REDBTN_PIN);
+    int green = digitalRead(GREENBTN_PIN);
+    int blue = digitalRead(BLUEBTN_PIN);
+    parseSwitches(true, red, green, blue);
+    /*
     if (irrecv.decode(&results))
-       {
-       Serial.println("Got IR");
-       digitalWrite(STATUS_PIN, HIGH);
-       Serial.println(results.value, HEX);
-       storeCode(&results, repeatCode);
-       //if a ir code is received from remote, use that instead of buttons
-       interiorOverride(repeatCode);
-       delay(50);
-       digitalWrite(STATUS_PIN, LOW);
-       irrecv.resume(); // resume receiver
-       }
-       */
-    }
-    else if(currentMode == FADE_MODE)
-    {
-      setStrips(true, 0, 0, 0);
-      fade();
-    }
-    else if(currentMode == STROBE_MODE)
-    {
-      int red = digitalRead(REDBTN_PIN);
-      int green = digitalRead(GREENBTN_PIN);
-      int blue = digitalRead(BLUEBTN_PIN);
-      strobeSwitches(red, green, blue);
-    }
-    else if(currentMode == COP_MODE)
-    {
-      setStrips(false, 255, 0, 0);
-      delay(75);
-      setStrips(false, 0, 0, 255);
-      delay(75);
-    }
-    else if(currentMode == HEART_MODE)
-    {
-      heartBeat(); 
-    }
+     {
+     Serial.println("Got IR");
+     digitalWrite(STATUS_PIN, HIGH);
+     Serial.println(results.value, HEX);
+     storeCode(&results, repeatCode);
+     //if a ir code is received from remote, use that instead of buttons
+     interiorOverride(repeatCode);
+     delay(50);
+     digitalWrite(STATUS_PIN, LOW);
+     irrecv.resume(); // resume receiver
+     }
+     */
   }
-  else
+  else if(currentMode == FADE_MODE)
   {
+    setStrips(true, 0, 0, fullVal);
+    fade();
+  }
+  else if(currentMode == STROBE_MODE)
+  {
+    int red = digitalRead(REDBTN_PIN);
+    int green = digitalRead(GREENBTN_PIN);
+    int blue = digitalRead(BLUEBTN_PIN);
+    strobeSwitches(red, green, blue);
+  }
+  else if(currentMode == COP_MODE)
+  {
+    setStrips(false, fullVal, 0, 0);
+    delay(75);
+    setStrips(false, 0, 0, fullVal);
+    delay(75);
+  }
+  else if(currentMode == HEART_MODE)
+  {
+    heartBeat(1.0); 
+  }
+  else if(currentMode == SHOWOFF_MODE)
+  {
+    showOff();
+  }
+  else if(currentMode == AMBER_MODE)
+  {
+    int oldWait = wait;
     wait = 5;
-    setStrips(true, 255, 100, 0);
-    wait = 1;
+    setStrips(true, 216, 121, 42);
+    wait = oldWait;
   }
 }
+
+
 
 
 
