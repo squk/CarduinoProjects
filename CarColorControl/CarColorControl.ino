@@ -34,11 +34,17 @@ const int BLUEBTN_PIN = 12;
 
 const int STATUS_PIN = 10;
 
+const int NORMAL_MODE = 0;
+const int FADE_MODE = 1;
+const int STROBE_MODE = 2;
+const int COP_MODE = 3;
+const int HEART_MODE = 4;
+
 boolean isAmber = false;
 int currentMode = 0;
 
 IRrecv irrecv(RECV_PIN);
-IRsend irsend;
+//irsend //irsend;
 
 decode_results results;
 
@@ -101,17 +107,17 @@ void storeCode(decode_results *results, IRCode& store) {
 void sendCode(int repeat, IRCode code) {
   if (code.codeType == NEC) {
     if (repeat) {
-      irsend.sendNEC(REPEAT, code.codeLen);
+      //irsend.sendNEC(REPEAT, code.codeLen);
       Serial.println("Sent NEC repeat");
     } 
     else {
-      irsend.sendNEC(code.codeValue, code.codeLen);
+      //irsend.sendNEC(code.codeValue, code.codeLen);
       Serial.print("Sent NEC ");
       Serial.println(code.codeValue, HEX);
     }
   } 
   else if (code.codeType == SONY) {
-    irsend.sendSony(code.codeValue, code.codeLen);
+    //irsend.sendSony(code.codeValue, code.codeLen);
     Serial.print("Sent Sony ");
     Serial.println(code.codeValue, HEX);
   } 
@@ -126,17 +132,17 @@ void sendCode(int repeat, IRCode code) {
     if (code.codeType == RC5) {
       Serial.print("Sent RC5 ");
       Serial.println(code.codeValue, HEX);
-      irsend.sendRC5(code.codeValue, code.codeLen);
+      //irsend.sendRC5(code.codeValue, code.codeLen);
     } 
     else {
-      irsend.sendRC6(code.codeValue, code.codeLen);
+      //irsend.sendRC6(code.codeValue, code.codeLen);
       Serial.print("Sent RC6 ");
       Serial.println(code.codeValue, HEX);
     }
   } 
   else if (code.codeType == UNKNOWN /* i.e. raw */) {
     // Assume 38 KHz
-    irsend.sendRaw(code.rawCodes, code.codeLen, 38);
+    //irsend.sendRaw(code.rawCodes, code.codeLen, 38);
     Serial.println("Sent raw");
   }
 }
@@ -175,6 +181,13 @@ unsigned long getIRCode(int r, int g, int b)
   if(r == 0 && g == 0 && b == 0)
     return offCode;
 }
+
+/*
+ *
+ * END OF IR CODE
+ *
+ */
+
 
 int calculateStep(int prevValue, int endValue) {
   int step = endValue - prevValue; // What's the overall gap?
@@ -268,7 +281,7 @@ void crossFade(byte color[3]) {
 void setStrips(boolean fade, byte r, byte g, byte b)
 {
   byte arr[] = {
-    r, g, b                            };
+    r, g, b                              };
   if(fade)
   {
     crossFade(arr);
@@ -340,7 +353,7 @@ void fade()
   if(isAmber || currentMode != 1)
     return;
   //sendCode(0, fadeCode);
-  irsend.sendNEC(fadeCode, 32);
+  //irsend.sendNEC(fadeCode, 32);
   fadeStrips(5);
 }
 
@@ -382,10 +395,10 @@ void parseSwitches(boolean checkStates, int r, int g, int b)
   int blueMapped = map(b, 0, 1, 0, 255);
   if(!isAmber)
   {
-    irsend.sendNEC(onCode, 32);
+    ////irsend.sendNEC(onCode, 32);
     delay(50);
     unsigned long buttonsCode = getIRCode(r, g, b);
-    irsend.sendNEC(buttonsCode, 32);
+    ////irsend.sendNEC(buttonsCode, 32);
     Serial.println(buttonsCode, HEX);
     lastCode = buttonsCode;
     setStrips(true, redMapped, greenMapped, blueMapped);
@@ -428,12 +441,12 @@ void strobeSwitches(int r, int g, int b)
     int greenMapped = map(g, 0, 1, 0, 255);
     int blueMapped = map(b, 0, 1, 0, 255);
     setStrips(false, redMapped, greenMapped, blueMapped);
-    irsend.sendNEC(onCode, 32);
+    //irsend.sendNEC(onCode, 32);
     unsigned long buttonsCode = getIRCode(r, g, b);
-    irsend.sendNEC(buttonsCode, 32);
+    //irsend.sendNEC(buttonsCode, 32);
     delay(25);
     setStrips(false, 0, 0, 0);
-    irsend.sendNEC(offCode, 32);
+    //irsend.sendNEC(offCode, 32);
     delay(25);
   }
   else
@@ -495,10 +508,15 @@ void blinkLED(int pin, int amount)
   }
 }
 
+void heartBeat()
+{
+    //in progress
+}
+
 void goAmber()
 {
   isAmber = true;
-  irsend.sendNEC(amberCode, 32);
+  //irsend.sendNEC(amberCode, 32);
   //sendCode(0, amberCode);
   delay(100);
   irrecv.enableIRIn();
@@ -510,7 +528,7 @@ IRCode repeatCode;
 int whiteButtonVal = 0; // value read from button
 int whiteButtonLast = 0; // buffered value of the button's previous state
 long btnDnTime; // time the button was pressed down
-long wBtnUpTime; // time the button was released
+long btnUpTime; // time the button was released
 boolean ignoreUp = false; // whether to ignore the button release because the click+hold was triggered
 
 //values for button hold
@@ -554,7 +572,7 @@ void buttonCheck()
   // Read the state of the button
   whiteButtonVal = digitalRead(WHITEBTN_PIN);
   // Test for button pressed and store the down time
-  if (whiteButtonVal == HIGH && whiteButtonLast == LOW && (millis() - wBtnUpTime) > long(debounce))
+  if (whiteButtonVal == HIGH && whiteButtonLast == LOW && (millis() - btnUpTime) > long(debounce))
   {
     btnDnTime = millis();
   }
@@ -562,20 +580,61 @@ void buttonCheck()
   if (whiteButtonVal == LOW && whiteButtonLast == HIGH && (millis() - btnDnTime) > long(debounce))
   {
     Serial.println("PRESSED");
-    if (ignoreUp == false) changeMode();
+    if (ignoreUp == false) buttonPressed();
     else ignoreUp = false;
-    wBtnUpTime = millis();
+    btnUpTime = millis();
   }
   // Test for button held down for longer than the hold time
   if (whiteButtonVal == HIGH && (millis() - btnDnTime) > long(holdTime))
   {
     Serial.println("HELD");
-    goAmber();
+    buttonHeld();
     ignoreUp = true;
     btnDnTime = millis();
   }
 
   whiteButtonLast = whiteButtonVal;
+}
+
+void buttonPressed()
+{
+  delay(500);
+  if(digitalRead(WHITEBTN_PIN) == HIGH)
+  {
+    Serial.println("DBL PRS");
+    buttonDoublePressed();
+  }
+  else
+  {
+    changeMode();
+  }
+}
+
+void buttonDoublePressed()
+{
+  goAmber();
+}
+
+void buttonHeld()
+{
+  int red = digitalRead(REDBTN_PIN);
+  int green = digitalRead(GREENBTN_PIN);
+  int blue = digitalRead(BLUEBTN_PIN);
+  if(red && green && blue)
+  {
+
+  }
+
+  if(red && !green && blue)
+  {
+    currentMode = COP_MODE;
+  }
+
+  if(red && !green && !blue)
+  {
+    setStrips(true, 0, 0, 0);
+    currentMode = HEART_MODE;
+  }
 }
 
 void setup()
@@ -598,7 +657,7 @@ void setup()
   pinMode(GREENPIN, OUTPUT);
   pinMode(BLUEPIN, OUTPUT);
   Serial.println("INITed");
-  irsend.sendNEC(onCode, 32);
+  //irsend.sendNEC(onCode, 32);
   delay(50);
   irrecv.enableIRIn();
 }
@@ -608,7 +667,7 @@ void loop()
   buttonCheck();
   if(!isAmber)
   {
-    if(currentMode == 0)
+    if(currentMode == NORMAL_MODE)
     {
       int red = digitalRead(REDBTN_PIN);
       int green = digitalRead(GREENBTN_PIN);
@@ -629,24 +688,38 @@ void loop()
        }
        */
     }
-    else if(currentMode == 1)
+    else if(currentMode == FADE_MODE)
     {
       setStrips(true, 0, 0, 0);
       fade();
     }
-    else if(currentMode == 2)
+    else if(currentMode == STROBE_MODE)
     {
       int red = digitalRead(REDBTN_PIN);
       int green = digitalRead(GREENBTN_PIN);
       int blue = digitalRead(BLUEBTN_PIN);
       strobeSwitches(red, green, blue);
     }
+    else if(currentMode == COP_MODE)
+    {
+      setStrips(false, 255, 0, 0);
+      delay(75);
+      setStrips(false, 0, 0, 255);
+      delay(75);
+    }
+    else if(currentMode == HEART_MODE)
+    {
+      heartBeat(); 
+    }
   }
   else
   {
-    setStrips(true, 255, 150, 0);
+    wait = 5;
+    setStrips(true, 255, 100, 0);
+    wait = 1;
   }
 }
+
 
 
 
