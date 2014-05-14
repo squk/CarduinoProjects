@@ -318,7 +318,7 @@ void buttonCheck()
       }
       else
       {
-        if(currentMode != STROBE_MODE || currentMode != COP_MODE || currentMode != SHOWOFF_MODE || currentMode != HEART_MODE)
+        if(currentMode != STROBE_MODE && currentMode != COP_MODE && currentMode != SHOWOFF_MODE && currentMode != HEART_MODE)
         {
           currentMode++;
         }
@@ -408,7 +408,7 @@ void loop()
   buttonCheck();
   if(currentMode == NORMAL_MODE)
   {
-    Serial.println("In Normal");
+    //Serial.println("In Normal");
     int red = digitalRead(REDBTN_PIN);
     int green = digitalRead(GREENBTN_PIN);
     int blue = digitalRead(BLUEBTN_PIN);
@@ -416,13 +416,13 @@ void loop()
   }
   else if(currentMode == FADE_MODE)
   {
-    Serial.println("In Fade");
+    //Serial.println("In Fade");
     setStrips(true, 0, 0, fullVal);
     fade();
   }
   else if(currentMode == STROBE_MODE)
   {
-    Serial.println("In Strobe");
+    //Serial.println("In Strobe");
     int red = digitalRead(REDBTN_PIN);
     int green = digitalRead(GREENBTN_PIN);
     int blue = digitalRead(BLUEBTN_PIN);
@@ -438,12 +438,12 @@ void loop()
   }
   else if(currentMode == HEART_MODE)
   {
-    Serial.println("In Heart");
+    //Serial.println("In Heart");
     heartBeat(1.0); 
   }
   else if(currentMode == SHOWOFF_MODE)
   {
-    Serial.println("In ShowOff");
+    //Serial.println("In ShowOff");
     setStrips(false, fullVal, 0, 0);
     delay(100);
     setStrips(false, 0, fullVal, 0);
@@ -453,7 +453,7 @@ void loop()
   }
   else if(currentMode == AMBER_MODE)
   {
-    Serial.println("In Amber");
+    //Serial.println("In Amber");
     int oldWait = wait;
     wait = 2;
     setStrips(true, 255, 128, 0);
