@@ -352,6 +352,18 @@ void buttonCheck()
   whiteButtonLast = whiteButtonVal;
 }
 
+void fastButtonCheck(int delayTime)
+{
+  whiteButtonVal = digitalRead(WHITEBTN_PIN);
+  // Test for button pressed and store the down time
+  if (whiteButtonVal == HIGH && whiteButtonLast == LOW)
+  {
+    currentMode = 0;
+  }
+  whiteButtonLast = whiteButtonVal;
+  delay(delayTime);
+}
+
 void buttonDoublePressed()
 {
   goAmber();
@@ -432,9 +444,34 @@ void loop()
   {
     Serial.println("In Cop");
     setStrips(false, fullVal, 0, 0);
+    fastButtonCheck(50);
+    setStrips(false, 0, 0, 0);
+    fastButtonCheck(50);
+    setStrips(false, fullVal, 0, 0);
+    fastButtonCheck(50);
+    setStrips(false, 0, 0, 0);
+    fastButtonCheck(50);
+    setStrips(false, fullVal, 0, 0);
+    fastButtonCheck(75);
+    //buttonCheck();
+    
+    setStrips(false, fullVal, fullVal, fullVal);
     delay(75);
+    
     setStrips(false, 0, 0, fullVal);
-    delay(75);
+    fastButtonCheck(50);
+    setStrips(false, 0, 0, 0);
+    fastButtonCheck(50);
+    setStrips(false, 0, 0, fullVal);
+    fastButtonCheck(50);
+    setStrips(false, 0, 0, 0);
+    fastButtonCheck(50);
+    setStrips(false, 0, 0, fullVal);
+    fastButtonCheck(75);
+    //buttonCheck();
+    
+    setStrips(false, fullVal, fullVal, fullVal);
+    fastButtonCheck(75);
   }
   else if(currentMode == HEART_MODE)
   {
