@@ -1,5 +1,8 @@
-Car LED Interface
+Carduino Projects
 ==========
-This is an Arduino project used to interface with LED strips using 4 buttons installed in the car along with a 3rd party LED device to which IR commands are relayed in order to maintain synced colors between the 3rd party device and the LED strips.  
 
-The IRDump project is used for dumping an IRCode struct over serial for received IR commands/codes. 
+####Color Control
+This is an Arduino project used to interface with LED strips using 3 potentiometers and 3rd party halo lights for the car. 
+
+####RFID Trunk
+A servo is actuated when a matching RFID tag is detected. Servo pulls wire attached to trunk mechanism and releases trunk. 
